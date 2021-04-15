@@ -1,0 +1,809 @@
+---
+title: "Data Exploration"
+author: "Anne Corby"
+date: "02/04/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("D:/Uni/FIT5147 - Data exploration and visualisation/Assignments/Data Exploration Project")
+```
+```{r}
+library(tidyverse)
+library(readxl)
+library(geojsonio)
+library(dbplyr)
+library(ggplot2)
+library(maps)
+require(viridis) # for colouring the map
+
+```
+
+The first thing we need  to do is load the data into some data frames, let's start with the languages and dialects file because it is in csv format and may be easier to process.
+
+```{r}
+languages_dialects <- read_csv("languages_and_dialects_geo.csv")
+languages_dialects
+summary(languages_dialects)
+```
+
+```{r}
+migration_spreadsheet <- read_excel("migration 2004-2019.xls")
+excel_sheets("migration 2004-2019.xls")
+```
+
+```{r}
+#Find what the sheet contains(could just open in Excel)
+contents <- read_excel("migration 2004-2019.xls", sheet = "Contents")
+contents
+
+migration_au <- read_excel("migration 2004-2019.xls", sheet = "Table 3.1")
+migration_nsw <- read_excel("migration 2004-2019.xls", sheet = "Table 3.2")
+migration_vic <- read_excel("migration 2004-2019.xls", sheet = "Table 3.3")
+migration_qld <- read_excel("migration 2004-2019.xls", sheet = "Table 3.4")
+migration_sa <- read_excel("migration 2004-2019.xls", sheet = "Table 3.5")
+migration_wa <- read_excel("migration 2004-2019.xls", sheet = "Table 3.6")
+migration_tas <- read_excel("migration 2004-2019.xls", sheet = "Table 3.7")
+migration_nt <- read_excel("migration 2004-2019.xls", sheet = "Table 3.8")
+migration_act <- read_excel("migration 2004-2019.xls", sheet = "Table 3.9")
+migration_au
+
+```
+Just want sheet 6 and sheet 7 from the 34150ds0090_2016_census_migrants file
+```{r}
+
+excel_sheets("34150ds0090_2016_census_migrants.xls")
+country_of_birth <- read_excel("34150ds0090_2016_census_migrants.xls", sheet = "Table 6")
+language_at_home <- read_excel("34150ds0090_2016_census_migrants.xls", sheet = "Table 7")
+```
+```{r}
+language_at_home <- language_at_home[-c(1,2,3,4,5,6,7,8),] %>% 
+  rename(language = `Australian Bureau of Statistics`) %>%
+  rename(australian_born = `...2`) %>%
+  rename(overseas_born = `...3`) %>%
+  rename(all_people = `...4`) %>%
+  rename(loe_proficient = `...5`) %>%
+  rename(loe_not_proficient = `...6`) %>%
+  rename(english_home = `...7`) %>%
+  rename(not_stated = `...8`) %>%
+  rename(arrived_2012_2016 = `...9`) %>%
+  rename(arrived_before_2012 = `...10`)
+language_at_home <- language_at_home[-c(61,62,63,64,66,67,68),]
+language_at_home <- language_at_home[-c(54,55,56,57,58,59,60),]
+language_at_home <- language_at_home[-c(52),]
+language_at_home <- language_at_home[-c(53),]
+language_at_home
+```
+```{r}
+country_of_birth <- country_of_birth[-c(1,2,3,4,5,6,7,8,59,61,62,63,64,65,66,67,68,69,70,71,72),] %>%
+  rename(birth_country = `Australian Bureau of Statistics`) %>%
+  rename(loe_proficient = `...2`) %>%
+  rename(loe_not_proficient = `...3`) %>%
+  rename(english_home = `...4`) %>%
+  rename(not_stated = `...5`) %>%
+  rename(arrived_2012_2016 = `...6`) %>%
+  rename(arrived_before_2012 = `...7`)
+country_of_birth
+```
+Now Pre-process the migration files
+```{r}
+migration_act <- migration_act[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_au <- migration_au[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_nsw <- migration_nsw[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_nt <- migration_nt[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_qld <- migration_qld[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+ rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`)  
+```
+```{r}
+migration_sa <- migration_sa[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_tas <- migration_tas[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+```{r}
+migration_vic <- migration_vic[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+
+```{r}
+migration_wa <- migration_wa[-c(1, 2, 3, 4, 5,256, 257, 258, 259, 260, 261,262,263,264,265,266,267,268,269,270,271),] %>%
+  rename(sacc_code = `Australian Bureau of Statistics`) %>%
+  rename(country_of_birth = `...2`) %>%
+  rename("2004" = `...3`) %>%
+  rename("2005" = `...4`) %>%
+  rename("2006" = `...5`) %>%
+  rename("2007" = `...6`) %>%
+  rename("2008" = `...7`) %>%
+  rename("2009" = `...8`) %>%
+  rename("2010" = `...9`) %>%
+  rename("2011" = `...10`) %>%
+  rename("2012" = `...11`) %>%
+  rename("2013" = `...12`) %>%
+  rename("2014" = `...13`) %>%
+  rename("2015" = `...14`) %>%
+  rename("2016" = `...15`) %>%
+  rename("2017" = `...16`) %>%
+  rename("2018" = `...17`) 
+```
+Need to convert the data to long form to be able to work with it in tidyverse
+
+```{r}
+migration_wa_long <- migration_wa %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_sa_long <- migration_sa %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_act_long <- migration_act %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_vic_long <- migration_vic %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_tas_long <- migration_tas %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_nt_long <- migration_nt %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_qld_long <- migration_qld %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_au_long <- migration_au %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+migration_nsw_long <- migration_nsw %>%
+  gather(arrival_year, Count, -sacc_code, -country_of_birth)
+```
+
+ Add a column that contains the state
+```{r}
+migration_act_long <- add_column(migration_act_long, state = "act")
+migration_au_long <- add_column(migration_au_long, state = "au")
+migration_nsw_long <- add_column(migration_nsw_long, state = "nsw")
+migration_nt_long <- add_column(migration_nt_long, state = "nt")
+migration_qld_long <- add_column(migration_qld_long, state = "qld")
+migration_sa_long <- add_column(migration_sa_long, state = "sa")
+migration_tas_long <- add_column(migration_tas_long, state = "tas")
+migration_vic_long <- add_column(migration_vic_long, state = "vic")
+migration_wa_long <- add_column(migration_wa_long, state = "wa")
+
+```
+
+Combine all the migration data together
+```{r}
+temp <- bind_rows(migration_act_long, migration_wa_long)
+temp <- bind_rows(temp, migration_nsw_long)
+temp <- bind_rows(temp, migration_nt_long)
+temp <- bind_rows(temp, migration_qld_long)
+temp <- bind_rows(temp, migration_sa_long)
+temp <- bind_rows(temp, migration_tas_long)
+temp <- bind_rows(temp, migration_vic_long)
+
+migration_combined <- temp
+
+```
+
+Export the data frames to csv files to quickly check for errors in Tableau
+```{r}
+write.csv(migration_combined, "migration_combined.csv", col.names = TRUE)
+
+```
+```{r}
+country_of_birth
+
+country_of_birth %>% filter(birth_country == "England")
+```
+
+
+```{r}
+language_at_home_plot <- language_at_home %>% filter(language != "Total Persons") %>%filter(language != "English")
+ggplot(language_at_home_plot, aes(x=language, y=as.numeric(overseas_born)/100000)) +
+  geom_bar(stat = "identity") + 
+  coord_flip() + 
+  labs(title = "Language spoken at home vs number born overseas",
+       y = "Hundred Thousand people")
+```
+
+```{r}
+languages_dialects
+languages_dialects[languages_dialects$name %in% language_at_home$language, ]
+
+```
+
+```{r}
+unique(country_of_birth$birth_country)
+language_at_home
+migration_act
+language_at_home[!complete.cases(language_at_home),]
+```
+```{r}
+ggplot(migration_act_long, aes(x=country_of_birth, y= Count, group = country_of_birth)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~arrival_year, scales = "free")
+
+```
+Count all the arrivals to Australia for each year
+```{r}
+au_aggregate <- aggregate(as.numeric(migration_au_long$Count), by = list(arrival_year = migration_au_long$arrival_year), FUN = sum)
+au_aggregate <- au_aggregate %>% rename(number_of_arrivals = x)
+au_aggregate
+
+
+```
+```{r}
+ggplot(au_aggregate, aes(x=arrival_year, y=number_of_arrivals)) +
+  geom_point() + geom_line()
+filter(au_aggregate, arrival_year == "arrived_2008_2009")
+```
+```{r}
+head(migration_act)
+head(migration_act_long)
+ggplot(migration_act_long, aes(x=as.numeric(arrival_year), y=Count, group = state) ) +
+  geom_point() + 
+  facet_wrap(~country_of_birth)
+```
+```{r}
+library(rvest)
+country_url <- "https://www.newworldencyclopedia.org/entry/List_of_countries_by_continent"
+continent_page <- read_html(country_url)
+country_tables <- html_table(continent_page, fill=TRUE)
+```
+load the country table for Africa into a data frame
+```{r}
+africa  <- country_tables[[1]]
+africa$Capital <- NULL
+africa$Capital <- NULL
+africa <- africa %>% rename(country1 = 'Country')
+africa <- union(africa$country1, africa$Country)
+africa <- add_column(as.data.frame(africa), continent = "Africa")
+africa <- africa %>% rename(Country = 'africa')
+```
+load the rest of the country tables into data frames
+```{r}
+
+asia <- country_tables[[2]]
+asia$Capital  <- NULL
+asia$Capital  <- NULL
+asia <- asia %>% rename(country1 = 'Country')
+asia <- union(asia$country1, asia$Country)
+asia <- add_column(as.data.frame(asia), continent = "Asia")
+asia <- asia %>% rename(Country = 'asia')
+
+europe <- country_tables[[3]]
+europe$Capital  <- NULL
+europe$Capital  <- NULL
+europe <- europe %>% rename(country1 = 'Country')
+europe <- union(europe$country1, europe$Country)
+europe <- add_column(as.data.frame(europe), continent = "Europe")
+europe <- europe %>% rename(Country = 'europe')
+
+
+northAmerica <- country_tables[[4]]
+northAmerica$Capital  <- NULL
+northAmerica$Capital  <- NULL
+northAmerica <- northAmerica %>% rename(country1 = 'Country')
+northAmerica <- union(northAmerica$country1, northAmerica$Country)
+northAmerica <- add_column(as.data.frame(northAmerica), continent = "North America")
+northAmerica <- northAmerica %>% rename(Country = 'northAmerica')
+
+
+southAmerica <- country_tables[[5]]
+southAmerica$Capital  <- NULL
+southAmerica$Capital  <- NULL
+southAmerica <- southAmerica %>% rename(country1 = 'Country')
+southAmerica <- union(southAmerica$country1, southAmerica$Country)
+southAmerica <- add_column(as.data.frame(southAmerica), continent = "South America")
+southAmerica <- southAmerica %>% rename(Country = 'southAmerica')
+
+oceania <- country_tables[[6]]
+oceania$Capital  <- NULL
+oceania$Capital  <- NULL
+oceania <- oceania %>% rename(country1 = 'Country')
+oceania <- union(oceania$country1, oceania$Country)
+oceania <- add_column(as.data.frame(oceania), continent = "Oceania")
+oceania <- oceania %>% rename(Country = 'oceania')
+
+antarctica <- country_tables[[7]]
+antarctica$Capital  <- NULL
+antarctica$Capital  <- NULL
+head(antarctica)
+
+
+temp <- bind_rows(africa, asia)
+temp <- bind_rows(temp, europe)
+temp <- bind_rows(temp, northAmerica)
+temp <- bind_rows(temp, southAmerica)
+temp <- bind_rows(temp, oceania)
+continents <- temp
+rm(temp)
+
+continents <- continents[-c(58,189,252), ]
+anti_join(continents, migration_au, by = c("Country" = "country_of_birth"))
+continents$Country[continents$Country == "Central African Republic"] <- "Cent Africa Rep"
+continents$Country[continents$Country == "Congo, Republic of (also known as Congo-Brazzaville)"] <- "Congo, Rep"
+continents$Country[continents$Country == "Equatorial Guinea"] <- "Equator Guinea"
+continents$Country[continents$Country == "Cape Verde"] <- "Cabo Verde"
+continents$Country[continents$Country == "Sao Tome and Principe"] <- "Sao Tome/Princ"
+continents$Country[continents$Country == "Congo, Democratic Republic of (also known as Congo-Kinshasa)"] <- "Congo, Dem Rep"
+continents$Country[continents$Country == "Côte d'Ivoire (also commonly known as Ivory Coast)"] <- "Cote d'Ivoire"
+continents$Country[continents$Country == "Mayotte (overseas territory of France)"] <- "Mayotte"
+continents$Country[continents$Country == "Réunion (overseas department of France)"] <- "Reunion"
+continents$Country[continents$Country == "Swaziland"] <- "Eswatini"
+continents$Country[continents$Country == "Azerbaijan[2]"] <- "Azerbaijan"
+continents$Country[continents$Country == "China, Republic of (commonly known as Taiwan)"] <- "Taiwan"
+continents$Country[continents$Country == "Georgia[2]"] <- "Georgia"
+continents$Country[continents$Country == "Korea, Democratic People's Republic of (commonly known as North Korea)"] <- "Korea, North"
+continents$Country[continents$Country == "Turkey[2]"] <- "Turkey"
+continents$Country[continents$Country == "Myanmar (also commonly known as Burma)"] <- "Myanmar"
+continents$Country[continents$Country == "United Arab Emirates"] <- "Unit Arab Emir"
+continents$Country[continents$Country == "British Indian Ocean Territory[3]"] <- "British Indian Ocean Territory"
+continents$Country[continents$Country == "Armenia[2]"] <- "Armenia"
+continents$Country[continents$Country == "China, People's Republic of"] <- "China"
+continents$Country[continents$Country == "Cyprus[2]"] <- "Cyprus"
+continents$Country[continents$Country == "Korea, Republic of (commonly known as South Korea)"] <- "Korea, South"
+continents$Country[continents$Country == "Russia[6]"] <- "Russia"
+continents$Country[continents$Country == "Timor-Leste (also commonly known as East Timor)"] <- "Timor-Leste"
+
+continents$Country[continents$Country == "Faroe Islands (overseas territory of Denmark)"] <- "Faroe Islands"
+continents$Country[continents$Country == "Palestinian territories"] <- "Gaza Str/W Bank"
+continents$Country[continents$Country == "Faroe Islands (overseas territory of Denmark)"] <- "Faroe Islands"
+continents$Country[continents$Country == "Bosnia and Herzegovina"] <- "Bosnia/Herzegov"
+continents$Country[continents$Country == "Czech Republic"] <- "Czechia"
+continents$Country[continents$Country == "United Kingdom"] <- "UK, CIs & IOM(e)"
+continents$Country[continents$Country == "Gibraltar (overseas territory of the United Kingdom)"] <- "Gibraltar"
+continents$Country[continents$Country == "Former Yugoslav Republic of Macedonia"] <- "North Macedonia"
+continents$Country[continents$Country == "Papua New Guinea"] <- "PNG"
+continents$Country[continents$Country == "Micronesia"] <- "Micronesia, F S"
+continents$Country[continents$Country == "Tokelau (overseas territory of New Zealand)"] <- "Tokelau"
+continents$Country[continents$Country == "French Polynesia (overseas territory of France)"] <- "French Poly"
+continents$Country[continents$Country == "Cook Islands (territory in free association with New Zealand)"] <- "Cook Islands"
+continents$Country[continents$Country == "Marshall Islands"] <- "Marshall Is"
+continents$Country[continents$Country == "Saint Kitts and Nevis"] <- "St Kitts/Nevis"
+continents$Country[continents$Country == "Saint Vincent and the Grenadines"] <- "St Vinc/Grenad"
+continents$Country[continents$Country == "Norfolk Island (overseas territory of Australia)"] <- "Norfolk Island"
+continents$Country[continents$Country == "Anguilla (overseas territory of the United Kingdom)"] <- "Anguilla"
+continents$Country[continents$Country == "Aruba (overseas country in the Kingdom of the Netherlands)"] <- "Aruba"
+continents$Country[continents$Country == "Bermuda (overseas territory of the United Kingdom)"] <- "Bermuda"
+continents$Country[continents$Country == "Vatican City"] <- "Holy See"
+continents$Country[continents$Country == "Martinique (overseas department of France)"] <- "Martinique"
+continents$Country[continents$Country == "United States"] <- "USA"
+continents$Country[continents$Country == "Antigua and Barbuda"] <- "Antigua/Barbuda"
+continents$Country[continents$Country == "Trinidad and Tobago"] <- "Trinidad/Tobago"
+continents$Country[continents$Country == "Montserrat (overseas territory of the United Kingdom)"] <- "Montserrat"
+continents$Country[continents$Country == "Dominican Republic"] <- "Dominican Rep"
+continents$Country[continents$Country == "Saint Lucia"] <- "St Lucia"
+continents$Country[continents$Country == "Cayman Islands (overseas territory of the United Kingdom)"] <- "Cayman Islands"
+continents$Country[continents$Country == "British Virgin Islands (overseas territory of the United Kingdom)"] <- "Virgin Is, Brit"
+continents$Country[continents$Country == "Greenland (overseas territory of Denmark)"] <- "Greenland"
+continents$Country[continents$Country == "Pitcairn Islands (overseas territory of the United Kingdom)"] <- "Pitcairn Is"
+continents$Country[continents$Country == "Wallis and Futuna (overseas territory of France)"] <- "Wallis/Futuna"
+continents$Country[continents$Country == "French Guiana (overseas department of France)"] <- "French Guiana"
+continents$Country[continents$Country == "American Samoa (overseas territory of the United States)"] <- "American Samoa"
+continents$Country[continents$Country == "New Caledonia (overseas territory of France)"] <- "New Caledonia"
+continents$Country[continents$Country == "Saint Helena (overseas territory of the United Kingdom; including the territories of Ascension Island and Tristan da Cunha)"] <- "St Helena"
+continents$Country[continents$Country == "Guadeloupe (overseas department of France)"] <- "Guadeloupe"
+continents$Country[continents$Country == "Saint Barthélemy (overseas territory of France)"] <- "St Barthelemy"
+
+continents$Country[continents$Country == "Puerto Rico (overseas territory of the United States)"] <- "Puerto Rico"
+continents$Country[continents$Country == "Saint Martin (overseas territory of France)"] <- "St Martin (Fr)"
+continents$Country[continents$Country == "Turks and Caicos Islands (overseas territory of the United Kingdom)"] <- "Turks/Caicos Is"
+continents$Country[continents$Country == "United States Virgin Islands (overseas territory of the United States)"] <- "Virgin Is, US"
+continents$Country[continents$Country == "American Samoa"] <- "Samoa American"
+continents$Country[continents$Country == "Falkland Islands (overseas territory of the United Kingdom)"] <- "Falkland Is"
+continents$Country[continents$Country == "Northern Mariana Islands (overseas territory of the United States)"] <- "N Mariana Is"
+continents$Country[continents$Country == "Guam (overseas territory of the United States)"] <- "Guam"
+continents$Country[continents$Country == "Niue (territory in free association with New Zealand)"] <- "Niue"
+ 
+#remove countries from continents that have no migration data and add South Sudan, Curacao, Polynesia and Sint Maarten
+df.newCountries <- data.frame(c("Curacao", "South Sudan", "Polynesia", "Sint Maarten"),
+                              c("North America", "Africa", "Oceania", "North America"))
+names(df.newCountries) <- c("Country", "continent")
+
+continents <- rbind(continents, df.newCountries)
+anti_join(continents, migration_au, by = c("Country" = "country_of_birth"))
+anti_join(migration_au, continents, by = c("country_of_birth" = "Country"))
+```
+Convert the required data to numeric
+```{r}
+# First need to make sure all the numeric migration data is numeric
+summary(migration_au_long)
+head(migration_au_long)
+migration_au_long$arrival_year <- as.numeric(migration_au_long$arrival_year)
+migration_au_long$Count <- as.numeric(migration_au_long$Count)
+migration_act_long$arrival_year <- as.numeric(migration_act_long$arrival_year)
+migration_act_long$Count <- as.numeric(migration_act_long$Count)
+migration_nsw_long$arrival_year <- as.numeric(migration_nsw_long$arrival_year)
+migration_nsw_long$Count <- as.numeric(migration_nsw_long$Count)
+migration_nt_long$arrival_year <- as.numeric(migration_nt_long$arrival_year)
+migration_nt_long$Count <- as.numeric(migration_nt_long$Count)
+migration_qld_long$arrival_year <- as.numeric(migration_qld_long$arrival_year)
+migration_qld_long$Count <- as.numeric(migration_qld_long$Count)
+migration_sa_long$arrival_year <- as.numeric(migration_sa_long$arrival_year)
+migration_sa_long$Count <- as.numeric(migration_sa_long$Count)
+migration_tas_long$arrival_year <- as.numeric(migration_tas_long$arrival_year)
+migration_tas_long$Count <- as.numeric(migration_tas_long$Count)
+migration_vic_long$arrival_year <- as.numeric(migration_vic_long$arrival_year)
+migration_vic_long$Count <- as.numeric(migration_vic_long$Count)
+migration_wa_long$arrival_year <- as.numeric(migration_wa_long$arrival_year)
+migration_wa_long$Count <- as.numeric(migration_wa_long$Count)
+migration_combined$arrival_year <- as.numeric(migration_combined$arrival_year)
+migration_combined$Count <- as.numeric(migration_combined$Count)
+
+# plot total number of arrivals for each year
+
+mig_av_act <- migration_act_long %>% group_by(arrival_year) %>% 
+  summarise(mean_Count = mean(Count))
+
+ggplot(mig_av_act, aes(x=arrival_year, y=mean_Count)) +
+  geom_point()
+
+migration_temp <- migration_combined %>%
+  group_by(country_of_birth, state, arrival_year) %>%
+  summarize(no_of_migrants = sum(Count)) %>% 
+  arrange(desc(no_of_migrants))
+ 
+              
+
+ggplot(migration_temp, aes(x=country_of_birth, y=no_of_migrants, group = country_of_birth, colour = arrival_year)) +
+  geom_point() + geom_line() +
+  facet_wrap(~state, scale = "free")
+
+ 
+
+
+head(migration_act)
+ggplot(migration_combined, aes(x=arrival_year, y=Count, group = country_of_birth, colour = state)) +
+  geom_point() + geom_line() +
+  facet_wrap(~state, scale = "free")
+
+```
+```{r}
+top_10_act <- 
+migration_act_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_act_plot <- migration_act_long[migration_act_long$country_of_birth %in% top_10_act$country_of_birth, ]
+
+ggplot(mig_act_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to the ACT between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to Australia
+```{r}
+top_10_au <- 
+migration_au_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_au_plot <- migration_au_long[migration_au_long$country_of_birth %in% top_10_au$country_of_birth, ]
+
+ggplot(mig_au_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to Australia between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to NSW
+```{r}
+top_10_nsw <- 
+migration_nsw_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_nsw_plot <- migration_nsw_long[migration_nsw_long$country_of_birth %in% top_10_nsw$country_of_birth, ]
+
+ggplot(mig_nsw_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to NSW between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to NT
+```{r}
+top_10_nt <- 
+migration_nt_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_nt_plot <- migration_nt_long[migration_nt_long$country_of_birth %in% top_10_nt$country_of_birth, ]
+
+ggplot(mig_nt_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to the NT between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to QLD
+```{r}
+top_10_qld <- 
+migration_qld_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_qld_plot <- migration_qld_long[migration_qld_long$country_of_birth %in% top_10_qld$country_of_birth, ]
+
+ggplot(mig_qld_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to QLD between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to SA
+```{r}
+top_10_sa <- 
+migration_sa_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_sa_plot <- migration_sa_long[migration_sa_long$country_of_birth %in% top_10_sa$country_of_birth, ]
+
+ggplot(mig_sa_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to SA between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to TAS
+```{r}
+top_10_tas <- 
+migration_tas_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_tas_plot <- migration_tas_long[migration_tas_long$country_of_birth %in% top_10_tas$country_of_birth, ]
+
+ggplot(mig_tas_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to TAS between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to VIC
+```{r}
+top_10_vic <- 
+migration_vic_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_vic_plot <- migration_vic_long[migration_vic_long$country_of_birth %in% top_10_vic$country_of_birth, ]
+
+ggplot(mig_vic_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to VIC between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+Which countries have the top 10 migrants to WA
+```{r}
+top_10_wa <- 
+migration_wa_long %>%
+  group_by(country_of_birth) %>%
+  summarise(total_by_country = sum(Count)) %>%
+  arrange(desc(total_by_country)) %>%
+  slice(1:10)
+
+mig_wa_plot <- migration_wa_long[migration_wa_long$country_of_birth %in% top_10_wa$country_of_birth, ]
+
+ggplot(mig_wa_plot, aes(x=arrival_year, y=Count, group = country_of_birth, colour = country_of_birth)) +
+  geom_point() + geom_line() +
+  labs(title="Top 10 countries for migration to WA between 2004 and 2019",
+       x = "Year of Arrival",
+       y  = "Number of Arrivals")
+
+  
+```
+bar chart of migrants to each state
+```{r}
+migration_by_state <- migration_combined %>% 
+  group_by(state) %>%
+  summarise(migrants_to_state = sum(Count))
+ 
+
+ggplot(migration_by_state, aes(x=state, y = migrants_to_state)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Migrants to each state between 2004 and 2019",
+       x = "State",
+       y = "Number of Migrants")
+```
+find the continents where migrants come from
+```{r}
+continent_migration <- merge(migration_au, continents, by.x=("country_of_birth"), by.y=("Country"))
+```
+
+Arabic speaking countries
+```{r}
+library(rvest)
+arabic_url <- "https://en.wikipedia.org/wiki/List_of_countries_where_Arabic_is_an_official_language"
+arabic_page <- read_html(arabic_url)
+arabic_tables <- html_table(arabic_page, fill=TRUE)
+official_arabic <- arabic_tables[[1]]
+# remove the last two rows
+
+```
+Check which official Arabic states are in the migration list
+
+```{r}
+official_arabic <- official_arabic[-c(24,25),]
+join(migration_au, official_arabic, by = c("country_of_birth" = "Sovereign state"))
+arabic_migration <- migration_au[migration_au$country_of_birth %in% official_arabic$`Sovereign state`, ]
+```
+`
+
+
+Find the countries in each continent that most migrants come from
+Find where the migrants from each country settle
+Find what languages the migrants from those countries speak
